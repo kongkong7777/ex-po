@@ -23,7 +23,7 @@ $t_4625_fw_Timeout = 30
 
 $Mail_From = "$($env:COMPUTERNAME)<ITInfraAlerts@didichuxing.com>"
 $Mail_To = 'linbinbin@didichuxing.com', 'wangliang@didichuxing.com', 'songlong@didichuxing.com', 'guoshuo@didichuxing.com', 'zhangningnik@didichuxing.com'
-$Mail_Subject = 'IPéªŒè¯å‘Šè­¦'
+$Mail_Subject = 'IPÑéÖ¤¸æ¾¯'
 
 $Mail_SMTPServer = 'mail.didichuxing.com'
 
@@ -105,19 +105,19 @@ $GoBlock = @()
 foreach($IP in $s_4625.Keys)
 {
     $tmp = @($s_4625.$IP | Group-Object | Sort-Object Count -Descending)
-    Add-Log -Path $strLogFile_e -Value "è¿‡å»[${MinutesToBack}]åˆ†é’Ÿ[IPåœ°å€][é”™è¯¯é‡][è´¦æˆ·][å‰5]:[$IP][$($s_4625.$IP.Count)][$($tmp.Count)][$($tmp[0..4] | %{$_.Name, $_.Count -join ':'})]"
+    Add-Log -Path $strLogFile_e -Value "¹ıÈ¥[${MinutesToBack}]·ÖÖÓ[IPµØÖ·][´íÎóÁ¿][ÕË»§][Ç°5]:[$IP][$($s_4625.$IP.Count)][$($tmp.Count)][$($tmp[0..4] | %{$_.Name, $_.Count -join ':'})]"
     $tmpx = @($WhiteList | ?{$IP -imatch $_})
     if($tmpx)
     {
         Add-Log -Path $strLogFile_e -Value "[$IP] in white list, matched: [$($tmpx -join '][')]"
         if($tmpx -imatch 'supper')
         {
-            Add-Log -Path $strLogFile_e -Value "[$IP] åŒ¹é…åˆ°è¶…çº§ç™½åå•æ¡ç›®,è·³è¿‡ç™½åå•é˜ˆå€¼æ£€æµ‹"
+            Add-Log -Path $strLogFile_e -Value "[$IP] Æ¥Åäµ½³¬¼¶°×Ãûµ¥ÌõÄ¿,Ìø¹ı°×Ãûµ¥ãĞÖµ¼ì²â"
             continue
         }
         if($s_4625.$IP.Count -ge $t_4625_fw_Intranet[0] -and $tmp.Count -ge $t_4625_fw_Intranet[1])
         {
-            Add-Log -Path $strLogFile_e -Value "[$IP] åœ¨ç™½åå•å½“ä¸­,ä½†æ˜¯è¶…è¿‡äº†ç™½åå•é˜ˆå€¼,åŠ å…¥é˜²ç«å¢™é˜Ÿåˆ—" -Type Warning
+            Add-Log -Path $strLogFile_e -Value "[$IP] ÔÚ°×Ãûµ¥µ±ÖĞ,µ«ÊÇ³¬¹ıÁË°×Ãûµ¥ãĞÖµ,¼ÓÈë·À»ğÇ½¶ÓÁĞ" -Type Warning
             $GoBlock += $IP
         }
     }
@@ -127,7 +127,7 @@ foreach($IP in $s_4625.Keys)
         if($s_4625.$IP.Count -ge $t_4625_fw[0] -and $tmp.Count -ge $t_4625_fw[1])
         {
             $tmp.Name | Add-Content -Path "$LogFolder\$IP.log" -Encoding Default
-            Add-Log -Path $strLogFile_e -Value "[$IP] è¶…è¿‡é˜ˆå€¼,åŠ å…¥é˜²ç«å¢™é˜Ÿåˆ—"
+            Add-Log -Path $strLogFile_e -Value "[$IP] ³¬¹ıãĞÖµ,¼ÓÈë·À»ğÇ½¶ÓÁĞ"
             $GoBlock += $IP
         }
     }
@@ -141,38 +141,28 @@ if($GoBlock)
         if(!(Get-NetFirewallRule -DisplayName "ScriptAuto_Block_$IP" -ErrorAction:SilentlyContinue))
         {
             $Mail = $true
-            New-NetFirewallRule -DisplayName "ScriptAuto_Block_$IP" -Profile Any -Action Block -RemoteAddress $IP -Direction Inbound -Description $Date.AddMinutes($t_4625_fw_Timeout).ToString('yyyy-MM-dd HH:mm:ss') -ErrorAction:SilentlyContinue
+            New-NetFirewallRule -DisplayName "ScriptAuto_Block_$IP" -Profile Any -Action Block -RemoteAddress $IP -Direction Inbound -ErrorAction:SilentlyContinue
             if(!$?)
             {
-                Add-Log -Path $strLogFile_e -Value "[$IP] åŠ å…¥firewallå¤±è´¥,åŸå› :" -Type Error
+                Add-Log -Path $strLogFile_e -Value "[$IP] ¼ÓÈëfirewallÊ§°Ü,Ô­Òò:" -Type Error
                 Add-Log -Path $strLogFile_e -Value $Error[0] -Type Error
             }
             else
             {
-                Add-Log -Path $strLogFile_e -Value "[$IP] åŠ å…¥é˜²ç«å¢™æˆåŠŸ" -Type Warning
+                Add-Log -Path $strLogFile_e -Value "[$IP] ¼ÓÈë·À»ğÇ½³É¹¦" -Type Warning
             }
         }
     }
 }
 
-Get-NetFirewallRule -DisplayName "ScriptAuto_*" | %{
-    if($_.Description)
-    {
-        if(([datetime]($_.Description) - $Date).TotalMinutes -lt 0)
-        {
-            $_ | Remove-NetFirewallRule
-        }
-    }
-    else
-    {
-        $_ | Remove-NetFirewallRule
-    }
+$WhiteList | %{
+    Get-NetFirewallRule -DisplayName "ScriptAuto_*$_" -ErrorAction:SilentlyContinue | Remove-NetFirewallRule
 }
 
 $BlackList | %{
     if(!(Get-NetFirewallRule -DisplayName "ScriptAuto_BlackList_$_" -ErrorAction:SilentlyContinue))
     {
-        New-NetFirewallRule -DisplayName "ScriptAuto_BlackList_$_" -Profile Any -Action Block -RemoteAddress $_ -Direction Inbound -Description ($Date.AddYears(100).ToString('yyyy-MM-dd HH:mm:ss')) -ErrorAction:SilentlyContinue
+        New-NetFirewallRule -DisplayName "ScriptAuto_BlackList_$_" -Profile Any -Action Block -RemoteAddress $_ -Direction Inbound -ErrorAction:SilentlyContinue
     }
 }
 
